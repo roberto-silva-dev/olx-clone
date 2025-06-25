@@ -1,0 +1,115 @@
+{% extends 'authapp/base.html' %}
+
+{% block content %}
+<!-- Conteúdo principal -->
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="fw-bold">{{ titulo_pagina }}</h2>
+                <a href="{% url 'criar_anuncio' %}" class="btn olx-btn-primary">
+                    <i class="fas fa-plus"></i> Criar Novo Anúncio
+                </a>
+            </div>
+            
+            {% if anuncios %}
+                <div class="row">
+                    {% for anuncio in anuncios %}
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="olx-card h-100">
+                            <div class="card-body p-0">
+                                <!-- Carrossel de imagens -->
+                                <div id="carousel-{{ anuncio.id }}" class="carousel slide" data-bs-ride="carousel">
+                                    <div class="carousel-inner">
+                                        {% if anuncio.imagens.all %}
+                                            {% for imagem in anuncio.imagens.all %}
+                                            <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                                                <img src="{{ imagem.imagem.url }}" class="d-block w-100" 
+                                                     style="height: 200px; object-fit: cover;" 
+                                                     alt="{{ anuncio.titulo }}">
+                                            </div>
+                                            {% endfor %}
+                                            {% if anuncio.imagens.count > 1 %}
+                                            <button class="carousel-control-prev" type="button" data-bs-target="#carousel-{{ anuncio.id }}" data-bs-slide="prev">
+                                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                                <span class="visually-hidden">Anterior</span>
+                                            </button>
+                                            <button class="carousel-control-next" type="button" data-bs-target="#carousel-{{ anuncio.id }}" data-bs-slide="next">
+                                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                                <span class="visually-hidden">Próximo</span>
+                                            </button>
+                                            {% endif %}
+                                        {% else %}
+                                            <div class="carousel-item active">
+                                                <div class="bg-light d-flex align-items-center justify-content-center" 
+                                                     style="height: 200px;">
+                                                    <i class="fas fa-image text-muted" style="font-size: 3rem;"></i>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="p-3">
+                                    <h6 class="card-title fw-bold mb-2">
+                                        <a href="{% url 'detalhes_anuncio' anuncio.pk %}" class="text-decoration-none text-dark">
+                                            {{ anuncio.titulo }}
+                                        </a>
+                                    </h6>
+                                    <p class="card-text text-muted small mb-2">{{ anuncio.localizacao }}</p>
+                                    <p class="card-text small mb-3">{{ anuncio.descricao|truncatewords:20 }}</p>
+                                    
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <span class="fw-bold text-success">R$ {{ anuncio.preco }}</span>
+                                        <span class="badge bg-secondary">{{ anuncio.get_condicao_display }}</span>
+                                    </div>
+                                    
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <small class="text-muted">{{ anuncio.data_criacao|timesince }} atrás</small>
+                                        <span class="badge {% if anuncio.ativo %}bg-success{% else %}bg-danger{% endif %}">
+                                            {% if anuncio.ativo %}Ativo{% else %}Inativo{% endif %}
+                                        </span>
+                                    </div>
+                                    
+                                    <div class="d-flex gap-2">
+                                        <a href="{% url 'detalhes_anuncio' anuncio.pk %}" class="btn btn-sm btn-outline-primary flex-fill">
+                                            <i class="fas fa-eye"></i> Ver Detalhes
+                                        </a>
+                                        <a href="{% url 'editar_anuncio' anuncio.pk %}" class="btn btn-sm btn-outline-warning">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-list text-muted" style="font-size: 4rem;"></i>
+                    <h4 class="mt-3">Você ainda não tem anúncios</h4>
+                    <p class="text-muted">Crie seu primeiro anúncio para começar a vender!</p>
+                    <a href="{% url 'criar_anuncio' %}" class="btn olx-btn-primary">
+                        <i class="fas fa-plus"></i> Criar Primeiro Anúncio
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.ad-image-placeholder {
+    background: linear-gradient(45deg, #f8f9fa 25%, transparent 25%), 
+                linear-gradient(-45deg, #f8f9fa 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #f8f9fa 75%), 
+                linear-gradient(-45deg, transparent 75%, #f8f9fa 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+}
+</style>
+{% endblock %} 

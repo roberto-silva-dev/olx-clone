@@ -1,0 +1,160 @@
+{% extends 'authapp/base.html' %}
+
+{% block content %}
+<!-- Conteúdo principal -->
+<div class="container mt-4">
+    <div class="row">
+        <!-- Filtros laterais -->
+        <div class="col-md-3">
+            <div class="olx-card p-3">
+                <h5 class="fw-bold mb-3">Filtros</h5>
+                
+                <!-- Categorias -->
+                <div class="mb-4">
+                    <h6 class="fw-medium mb-2">Categorias</h6>
+                    <div class="list-group list-group-flush">
+                        <a href="{% url 'home' %}{% if consulta %}?q={{ consulta }}{% endif %}" 
+                           class="list-group-item list-group-item-action {% if not categoria_selecionada %}active{% endif %}">
+                            Todas as categorias
+                        </a>
+                        {% for categoria in categorias %}
+                        <a href="{% url 'home' %}?categoria={{ categoria.slug }}{% if consulta %}&q={{ consulta }}{% endif %}" 
+                           class="list-group-item list-group-item-action {% if categoria_selecionada == categoria.slug %}active{% endif %}">
+                            {{ categoria.nome }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <!-- Condição -->
+                <div class="mb-4">
+                    <h6 class="fw-medium mb-2">Condição</h6>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="condicao" id="todas" 
+                               {% if not condicao_selecionada %}checked{% endif %}>
+                        <label class="form-check-label" for="todas">Todas</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="condicao" id="novo" value="novo"
+                               {% if condicao_selecionada == 'novo' %}checked{% endif %}>
+                        <label class="form-check-label" for="novo">Novo</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="condicao" id="usado" value="usado"
+                               {% if condicao_selecionada == 'usado' %}checked{% endif %}>
+                        <label class="form-check-label" for="usado">Usado</label>
+                    </div>
+                </div>
+                
+                <!-- Preço -->
+                <div class="mb-4">
+                    <h6 class="fw-medium mb-2">Preço</h6>
+                    <form method="get" action="{% url 'home' %}">
+                        {% if consulta %}<input type="hidden" name="q" value="{{ consulta }}">{% endif %}
+                        {% if categoria_selecionada %}<input type="hidden" name="categoria" value="{{ categoria_selecionada }}">{% endif %}
+                        {% if condicao_selecionada %}<input type="hidden" name="condicao" value="{{ condicao_selecionada }}">{% endif %}
+                        
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <input type="number" name="preco_minimo" class="form-control form-control-sm" 
+                                       placeholder="Min" value="{{ preco_minimo }}">
+                            </div>
+                            <div class="col-6">
+                                <input type="number" name="preco_maximo" class="form-control form-control-sm" 
+                                       placeholder="Max" value="{{ preco_maximo }}">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-sm olx-btn-primary w-100 mt-2">Aplicar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Listagem de anúncios -->
+        <div class="col-md-9">
+            {% if consulta %}
+            <div class="mb-3">
+                <h5>Resultados para "{{ consulta }}"</h5>
+                <p class="text-muted">{{ anuncios.count }} anúncio(s) encontrado(s)</p>
+            </div>
+            {% endif %}
+            
+            {% if anuncios %}
+            <div class="row">
+                {% for anuncio in anuncios %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="olx-card h-100">
+                        <div class="card-body p-0">
+                            <!-- Carrossel de imagens -->
+                            <div id="carousel-{{ anuncio.id }}" class="carousel slide" data-bs-ride="carousel">
+                                <div class="carousel-inner">
+                                    {% if anuncio.imagens.all %}
+                                        {% for imagem in anuncio.imagens.all %}
+                                        <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                                            <img src="{{ imagem.imagem.url }}" class="d-block w-100" 
+                                                 style="height: 200px; object-fit: cover;" 
+                                                 alt="{{ anuncio.titulo }}">
+                                        </div>
+                                        {% endfor %}
+                                        {% if anuncio.imagens.count > 1 %}
+                                        <button class="carousel-control-prev" type="button" data-bs-target="#carousel-{{ anuncio.id }}" data-bs-slide="prev">
+                                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                            <span class="visually-hidden">Anterior</span>
+                                        </button>
+                                        <button class="carousel-control-next" type="button" data-bs-target="#carousel-{{ anuncio.id }}" data-bs-slide="next">
+                                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                            <span class="visually-hidden">Próximo</span>
+                                        </button>
+                                        {% endif %}
+                                    {% else %}
+                                        <div class="carousel-item active">
+                                            <div class="bg-light d-flex align-items-center justify-content-center" 
+                                                 style="height: 200px;">
+                                                <i class="fas fa-image text-muted" style="font-size: 3rem;"></i>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="p-3">
+                                <h6 class="card-title fw-bold mb-2">
+                                    <a href="{% url 'detalhes_anuncio' anuncio.pk %}" class="text-decoration-none text-dark">
+                                        {{ anuncio.titulo }}
+                                    </a>
+                                </h6>
+                                <p class="card-text text-muted small mb-2">{{ anuncio.localizacao }}</p>
+                                <p class="card-text small mb-3">{{ anuncio.descricao|truncatewords:20 }}</p>
+                                
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="fw-bold text-success">R$ {{ anuncio.preco }}</span>
+                                    <span class="badge bg-secondary">{{ anuncio.get_condicao_display }}</span>
+                                </div>
+                                
+                                <div class="mt-2">
+                                    <small class="text-muted">{{ anuncio.data_criacao|timesince }} atrás</small>
+                                </div>
+                                
+                                <div class="mt-3">
+                                    <a href="{% url 'detalhes_anuncio' anuncio.pk %}" class="btn btn-outline-primary btn-sm w-100">
+                                        <i class="fas fa-eye me-1"></i> Ver Detalhes
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-search text-muted" style="font-size: 4rem;"></i>
+                <h4 class="mt-3">Nenhum anúncio encontrado</h4>
+                <p class="text-muted">Tente ajustar os filtros ou fazer uma nova busca.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %} 

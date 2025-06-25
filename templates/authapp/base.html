@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OLX Clone</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --olx-orange: #ff6a00;
+            --olx-orange-hover: #e55a00;
+            --olx-gray: #4a4a4a;
+            --olx-light-gray: #f8f9fa;
+            --olx-border: #e1e5e9;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--olx-light-gray);
+            color: var(--olx-gray);
+        }
+        
+        .olx-logo {
+            color: var(--olx-orange);
+            font-weight: 700;
+            font-size: 2rem;
+            text-decoration: none;
+        }
+        
+        .olx-logo:hover {
+            color: var(--olx-orange-hover);
+        }
+        
+        .olx-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid var(--olx-border);
+        }
+        
+        .olx-btn-primary {
+            background-color: var(--olx-orange);
+            border-color: var(--olx-orange);
+            color: white;
+            font-weight: 600;
+            padding: 12px 24px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        
+        .olx-btn-primary:hover {
+            background-color: var(--olx-orange-hover);
+            border-color: var(--olx-orange-hover);
+            color: white;
+        }
+        
+        .olx-form-control {
+            border: 1px solid var(--olx-border);
+            border-radius: 6px;
+            padding: 12px 16px;
+            font-size: 14px;
+        }
+        
+        .olx-form-control:focus {
+            border-color: var(--olx-orange);
+            box-shadow: 0 0 0 0.2rem rgba(255, 106, 0, 0.25);
+        }
+        
+        .olx-link {
+            color: var(--olx-orange);
+            text-decoration: none;
+        }
+        
+        .olx-link:hover {
+            color: var(--olx-orange-hover);
+            text-decoration: underline;
+        }
+        
+        .olx-divider {
+            border-top: 1px solid var(--olx-border);
+            margin: 1.5rem 0;
+        }
+        
+        .olx-footer {
+            background: white;
+            border-top: 1px solid var(--olx-border);
+            padding: 2rem 0;
+            margin-top: 3rem;
+        }
+        
+        .olx-main-header {
+            background: white;
+            border-bottom: 1px solid var(--olx-border);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .olx-search-input {
+            border: 2px solid var(--olx-orange);
+            border-radius: 6px 0 0 6px;
+            padding: 12px 16px;
+            font-size: 14px;
+        }
+        
+        .olx-search-input:focus {
+            border-color: var(--olx-orange);
+            box-shadow: none;
+        }
+        
+        .search-form .btn {
+            border-radius: 0 6px 6px 0;
+            border-left: none;
+        }
+        
+        /* Estilos do carrossel */
+        .carousel-control-prev,
+        .carousel-control-next {
+            width: 10%;
+            opacity: 0.8;
+        }
+
+        .carousel-control-prev-icon,
+        .carousel-control-next-icon {
+            background-color: rgba(0,0,0,0.5);
+            border-radius: 50%;
+            padding: 8px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header com barra de pesquisa -->
+    <header class="olx-main-header">
+        <div class="container">
+            <div class="row align-items-center py-3">
+                <div class="col-md-3">
+                    <a href="{% url 'home' %}" class="olx-logo">OLX</a>
+                </div>
+                <div class="col-md-6">
+                    <form method="get" action="{% url 'home' %}" class="search-form">
+                        <div class="input-group">
+                            <input type="text" name="q" class="form-control olx-search-input" 
+                                   placeholder="O que você está procurando?" 
+                                   value="{{ consulta|default:'' }}">
+                            <button class="btn olx-btn-primary" type="submit">
+                                <i class="fas fa-search"></i> Buscar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="col-md-3 text-end">
+                    {% if user.is_authenticated %}
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user"></i> Minha Conta
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{% url 'criar_anuncio' %}"><i class="fas fa-plus"></i> Criar Anúncio</a></li>
+                                <li><a class="dropdown-item" href="{% url 'meus_anuncios' %}"><i class="fas fa-list"></i> Meus Anúncios</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Sair</a></li>
+                            </ul>
+                        </div>
+                    {% else %}
+                        <a href="{% url 'login' %}" class="btn olx-btn-primary">
+                            <i class="fas fa-sign-in-alt"></i> Entrar
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="container mt-3">
+        {% for message in messages %}
+            <div class="alert alert-info">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="olx-footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-12 text-center">
+                    <p class="text-muted mb-0">&copy; 2024 OLX Clone. Todos os direitos reservados.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</body>
+</html> 

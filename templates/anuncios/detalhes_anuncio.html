@@ -1,0 +1,259 @@
+{% extends 'authapp/base.html' %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div class="container mt-3">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Início</a></li>
+            <li class="breadcrumb-item"><a href="#">{{ anuncio.categoria.nome }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ anuncio.titulo }}</li>
+        </ol>
+    </nav>
+</div>
+
+<!-- Conteúdo principal -->
+<div class="container mt-4">
+    <div class="row">
+        <!-- Coluna da esquerda - Imagens e detalhes -->
+        <div class="col-lg-8">
+            <!-- Galeria de imagens -->
+            <div class="olx-card mb-4">
+                <div class="card-body p-0">
+                    {% if anuncio.imagens.all %}
+                        <div id="mainCarousel" class="carousel slide" data-bs-ride="carousel">
+                            <div class="carousel-inner">
+                                {% for imagem in anuncio.imagens.all %}
+                                <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                                    <img src="{{ imagem.imagem.url }}" class="d-block w-100" 
+                                         style="height: 400px; object-fit: cover;" 
+                                         alt="{{ anuncio.titulo }}">
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            {% if anuncio.imagens.count > 1 %}
+                            <button class="carousel-control-prev" type="button" data-bs-target="#mainCarousel" data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Anterior</span>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#mainCarousel" data-bs-slide="next">
+                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Próximo</span>
+                            </button>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Miniaturas das imagens -->
+                        {% if anuncio.imagens.count > 1 %}
+                        <div class="p-3">
+                            <div class="row">
+                                {% for imagem in anuncio.imagens.all %}
+                                <div class="col-2 mb-2">
+                                    <img src="{{ imagem.imagem.url }}" 
+                                         class="img-thumbnail cursor-pointer" 
+                                         style="height: 60px; object-fit: cover;"
+                                         onclick="goToSlide({{ forloop.counter0 }})"
+                                         alt="Miniatura {{ forloop.counter }}">
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="bg-light d-flex align-items-center justify-content-center" 
+                             style="height: 400px;">
+                            <div class="text-center">
+                                <i class="fas fa-image text-muted" style="font-size: 4rem;"></i>
+                                <p class="text-muted mt-2">Nenhuma imagem disponível</p>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Informações do anúncio -->
+            <div class="olx-card mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h1 class="h3 fw-bold mb-0">{{ anuncio.titulo }}</h1>
+                        {% if user.is_authenticated and user == anuncio.usuario %}
+                        <a href="{% url 'editar_anuncio' anuncio.pk %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-edit me-1"></i> Editar Anúncio
+                        </a>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-map-marker-alt text-muted me-2"></i>
+                                <span class="text-muted">{{ anuncio.localizacao }}</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-calendar text-muted me-2"></i>
+                                <span class="text-muted">Publicado {{ anuncio.data_criacao|timesince }} atrás</span>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-eye text-muted me-2"></i>
+                                <span class="text-muted">Categoria: {{ anuncio.categoria.nome }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <span class="badge bg-secondary fs-6">{{ anuncio.get_condicao_display }}</span>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <h5 class="fw-bold mb-3">Descrição</h5>
+                    <p class="text-muted">{{ anuncio.descricao|linebreaks }}</p>
+                </div>
+            </div>
+
+            <!-- Anúncios similares -->
+            {% if anuncios_similares %}
+            <div class="olx-card">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3">Anúncios Similares</h6>
+                    <div class="row">
+                        {% for anuncio_similar in anuncios_similares %}
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    {% if anuncio_similar.get_imagem_principal %}
+                                        <img src="{{ anuncio_similar.get_imagem_principal.imagem.url }}" 
+                                             class="rounded" 
+                                             style="width: 60px; height: 60px; object-fit: cover;"
+                                             alt="{{ anuncio_similar.titulo }}">
+                                    {% else %}
+                                        <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                                             style="width: 60px; height: 60px;">
+                                            <i class="fas fa-image text-muted"></i>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-1">
+                                        <a href="{% url 'detalhes_anuncio' anuncio_similar.pk %}" class="text-decoration-none">
+                                            {{ anuncio_similar.titulo|truncatewords:8 }}
+                                        </a>
+                                    </h6>
+                                    <p class="text-success fw-bold mb-0">R$ {{ anuncio_similar.preco }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Coluna da direita - Preço e contato -->
+        <div class="col-lg-4">
+            <!-- Card de preço e contato -->
+            <div class="olx-card mb-4 sticky-top sticky-card">
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <h2 class="text-success fw-bold">R$ {{ anuncio.preco }}</h2>
+                    </div>
+
+                    <div class="d-grid gap-2 mb-3">
+                        <button class="btn olx-btn-primary btn-lg">
+                            <i class="fas fa-phone me-2"></i>Ligar Agora
+                        </button>
+                        <button class="btn btn-outline-primary btn-lg">
+                            <i class="fas fa-comment me-2"></i>Enviar Mensagem
+                        </button>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-3">
+                        <h6 class="fw-bold mb-2">Informações do Vendedor</h6>
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-user text-muted me-2"></i>
+                            <span>{{ anuncio.usuario.username }}</span>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-calendar-alt text-muted me-2"></i>
+                            <span>Membro desde {{ anuncio.usuario.date_joined|date:"M Y" }}</span>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-shield-alt me-2"></i>
+                        <small>Este anúncio foi verificado e está ativo</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.cursor-pointer:hover {
+    opacity: 0.8;
+}
+
+.sticky-top {
+    z-index: 1020;
+}
+
+.sticky-card {
+    top: 20px;
+}
+
+.breadcrumb a {
+    color: var(--olx-orange);
+    text-decoration: none;
+}
+
+.breadcrumb a:hover {
+    color: var(--olx-orange-hover);
+}
+
+/* Ajustes de padding e espaçamento */
+.container {
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+.olx-card {
+    margin-bottom: 1.5rem;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+/* Responsividade para mobile */
+@media (max-width: 768px) {
+    .container {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .sticky-top {
+        position: relative !important;
+        top: 0 !important;
+    }
+}
+</style>
+
+<script>
+function goToSlide(index) {
+    const carousel = new bootstrap.Carousel(document.getElementById('mainCarousel'));
+    carousel.to(index);
+}
+</script>
+{% endblock %} 
