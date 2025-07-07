@@ -3,6 +3,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.forms import modelformset_factory
 from django.db import transaction
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+import os
 from .models import Anuncio, Categoria, ImagemAnuncio
 from .forms import AnuncioForm, ImagemAnuncioForm
 
@@ -10,7 +13,7 @@ from .forms import AnuncioForm, ImagemAnuncioForm
 
 @login_required
 def criar_anuncio(request):
-    # Criar o formset factory sem formset personalizado
+    # Criar o formset factory
     ImagemAnuncioFormSet = modelformset_factory(
         ImagemAnuncio, 
         form=ImagemAnuncioForm, 
@@ -23,22 +26,6 @@ def criar_anuncio(request):
         form_anuncio = AnuncioForm(request.POST)
         formset_imagens = ImagemAnuncioFormSet(request.POST, request.FILES, prefix='imagens')
         
-        # Debug: verificar se os formulários são válidos
-        print(f"Form anúncio válido: {form_anuncio.is_valid()}")
-        if not form_anuncio.is_valid():
-            print(f"Erros do form anúncio: {form_anuncio.errors}")
-        
-        print(f"Formset imagens válido: {formset_imagens.is_valid()}")
-        if not formset_imagens.is_valid():
-            print(f"Erros do formset: {formset_imagens.errors}")
-        
-        # Verificar se há imagens sendo enviadas
-        imagens_enviadas = 0
-        for form in formset_imagens:
-            if form.cleaned_data and form.cleaned_data.get('imagem'):
-                imagens_enviadas += 1
-        print(f"Imagens enviadas: {imagens_enviadas}")
-        
         if form_anuncio.is_valid():
             try:
                 with transaction.atomic():
@@ -46,29 +33,26 @@ def criar_anuncio(request):
                     anuncio = form_anuncio.save(commit=False)
                     anuncio.usuario = request.user
                     anuncio.save()
-                    print(f"Anúncio salvo com ID: {anuncio.id}")
                     
-                    # Salvar imagens (se o formset for válido)
+                    # Salvar imagens
                     imagens_salvas = 0
                     if formset_imagens.is_valid():
                         for form_imagem in formset_imagens:
                             if form_imagem.cleaned_data and not form_imagem.cleaned_data.get('DELETE'):
-                                if form_imagem.cleaned_data.get('imagem'):  # Verificar se há imagem
+                                if form_imagem.cleaned_data.get('imagem'):
                                     imagem = form_imagem.save(commit=False)
                                     imagem.anuncio = anuncio
                                     imagem.ordem = imagens_salvas
                                     imagem.save()
                                     imagens_salvas += 1
-                                    print(f"Imagem salva: {imagem.imagem.name}")
                     
                     messages.success(request, f'Anúncio criado com sucesso! {imagens_salvas} imagem(s) salva(s).')
                     return redirect('home')
                     
             except Exception as e:
                 messages.error(request, f'Erro ao criar anúncio: {str(e)}')
-                print(f"Erro: {e}")
         else:
-            # Se o formulário de anúncio não é válido, mostrar erros
+            # Mostrar erros de validação
             for field, errors in form_anuncio.errors.items():
                 for error in errors:
                     messages.error(request, f'Erro no campo {field}: {error}')
@@ -76,14 +60,13 @@ def criar_anuncio(request):
         form_anuncio = AnuncioForm()
         formset_imagens = ImagemAnuncioFormSet(prefix='imagens')
     
-    categorias = Categoria.objects.all()
     contexto = {
         'form_anuncio': form_anuncio,
         'formset_imagens': formset_imagens,
-        'categorias': categorias,
+        'anuncio': None,  # Indica que é criação
     }
     
-    return render(request, 'anuncios/criar_anuncio.html', contexto)
+    return render(request, 'anuncios/anuncio_form.html', contexto)
 
 @login_required
 def meus_anuncios(request):
@@ -133,50 +116,94 @@ def editar_anuncio(request, pk):
         form_anuncio = AnuncioForm(request.POST, instance=anuncio)
         formset_imagens = ImagemAnuncioFormSet(request.POST, request.FILES, prefix='imagens')
         
-        if form_anuncio.is_valid() and formset_imagens.is_valid():
+        if form_anuncio.is_valid():
             try:
                 with transaction.atomic():
                     # Salvar anúncio
                     anuncio = form_anuncio.save()
                     
-                    # Salvar imagens
+                    # Processar imagens
                     imagens_salvas = 0
+                    imagens_deletadas = 0
+                    
+                    # Primeiro, processar imagens existentes
                     for form_imagem in formset_imagens:
-                        if form_imagem.cleaned_data and not form_imagem.cleaned_data.get('DELETE'):
-                            if form_imagem.cleaned_data.get('id'):
-                                # Atualizar imagem existente
-                                imagem = form_imagem.save(commit=False)
+                        if form_imagem.cleaned_data:
+                            if form_imagem.cleaned_data.get('DELETE') and form_imagem.cleaned_data.get('id'):
+                                # Deletar imagem existente
+                                imagem = form_imagem.instance
+                                if os.path.exists(imagem.imagem.path):
+                                    os.remove(imagem.imagem.path)
+                                imagem.delete()
+                                imagens_deletadas += 1
+                            elif form_imagem.cleaned_data.get('id'):
+                                # Manter imagem existente
+                                imagem = form_imagem.instance
                                 imagem.ordem = imagens_salvas
                                 imagem.save()
-                            else:
+                                imagens_salvas += 1
+                            elif form_imagem.cleaned_data.get('imagem'):
                                 # Nova imagem
                                 imagem = form_imagem.save(commit=False)
                                 imagem.anuncio = anuncio
                                 imagem.ordem = imagens_salvas
                                 imagem.save()
-                            imagens_salvas += 1
-                        elif form_imagem.cleaned_data.get('id') and form_imagem.cleaned_data.get('DELETE'):
-                            # Deletar imagem
-                            form_imagem.instance.delete()
+                                imagens_salvas += 1
                     
-                    messages.success(request, 'Anúncio atualizado com sucesso!')
+                    # Reordenar imagens restantes
+                    for i, imagem in enumerate(anuncio.imagens.all().order_by('ordem')):
+                        imagem.ordem = i
+                        imagem.save()
+                    
+                    messages.success(request, f'Anúncio atualizado com sucesso! {imagens_salvas} imagem(s) salva(s), {imagens_deletadas} deletada(s).')
                     return redirect('detalhes_anuncio', pk=anuncio.pk)
                     
             except Exception as e:
                 messages.error(request, f'Erro ao atualizar anúncio: {str(e)}')
+        else:
+            # Mostrar erros de validação
+            if not form_anuncio.is_valid():
+                for field, errors in form_anuncio.errors.items():
+                    for error in errors:
+                        messages.error(request, f'Erro no campo {field}: {error}')
+            if not formset_imagens.is_valid():
+                for form in formset_imagens:
+                    if form.errors:
+                        for field, errors in form.errors.items():
+                            for error in errors:
+                                messages.error(request, f'Erro na imagem: {error}')
     else:
         form_anuncio = AnuncioForm(instance=anuncio)
         formset_imagens = ImagemAnuncioFormSet(
-            queryset=anuncio.imagens.all(),
+            queryset=anuncio.imagens.all().order_by('ordem'),
             prefix='imagens'
         )
     
-    categorias = Categoria.objects.all()
     contexto = {
         'form_anuncio': form_anuncio,
         'formset_imagens': formset_imagens,
-        'categorias': categorias,
-        'anuncio': anuncio,
+        'anuncio': anuncio,  # Indica que é edição
     }
     
-    return render(request, 'anuncios/editar_anuncio.html', contexto)
+    return render(request, 'anuncios/anuncio_form.html', contexto)
+
+@login_required
+@require_POST
+def deletar_anuncio(request, pk):
+    """Deleta um anúncio (soft delete)"""
+    anuncio = get_object_or_404(Anuncio, pk=pk, usuario=request.user)
+    
+    try:
+        with transaction.atomic():
+            # Deletar arquivos de imagem
+            for imagem in anuncio.imagens.all():
+                if os.path.exists(imagem.imagem.path):
+                    os.remove(imagem.imagem.path)
+            
+            # Soft delete do anúncio
+            anuncio.ativo = False
+            anuncio.save()
+            
+            return JsonResponse({'success': True, 'message': 'Anúncio deletado com sucesso!'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Erro ao deletar anúncio: {str(e)}'})

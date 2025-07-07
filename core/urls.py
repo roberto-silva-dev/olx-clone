@@ -25,6 +25,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('auth/', include('authapp.urls')),
     path('anuncios/', include('anuncios.urls')),
+    path('chat/', include('chat.urls')),
 ]
 
 if settings.DEBUG:

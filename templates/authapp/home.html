@@ -13,12 +13,12 @@
                 <div class="mb-4">
                     <h6 class="fw-medium mb-2">Categorias</h6>
                     <div class="list-group list-group-flush">
-                        <a href="{% url 'home' %}{% if consulta %}?q={{ consulta }}{% endif %}" 
+                        <a href="{% url 'home' %}{% if consulta or condicao_selecionada or preco_minimo or preco_maximo %}?{% if consulta %}q={{ consulta }}{% endif %}{% if condicao_selecionada %}{% if consulta %}&{% endif %}condicao={{ condicao_selecionada }}{% endif %}{% if preco_minimo %}{% if consulta or condicao_selecionada %}&{% endif %}preco_minimo={{ preco_minimo }}{% endif %}{% if preco_maximo %}{% if consulta or condicao_selecionada or preco_minimo %}&{% endif %}preco_maximo={{ preco_maximo }}{% endif %}{% endif %}" 
                            class="list-group-item list-group-item-action {% if not categoria_selecionada %}active{% endif %}">
                             Todas as categorias
                         </a>
                         {% for categoria in categorias %}
-                        <a href="{% url 'home' %}?categoria={{ categoria.slug }}{% if consulta %}&q={{ consulta }}{% endif %}" 
+                        <a href="{% url 'home' %}?categoria={{ categoria.slug }}{% if consulta %}&q={{ consulta }}{% endif %}{% if condicao_selecionada %}&condicao={{ condicao_selecionada }}{% endif %}{% if preco_minimo %}&preco_minimo={{ preco_minimo }}{% endif %}{% if preco_maximo %}&preco_maximo={{ preco_maximo }}{% endif %}" 
                            class="list-group-item list-group-item-action {% if categoria_selecionada == categoria.slug %}active{% endif %}">
                             {{ categoria.nome }}
                         </a>
@@ -29,27 +29,39 @@
                 <!-- Condição -->
                 <div class="mb-4">
                     <h6 class="fw-medium mb-2">Condição</h6>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="condicao" id="todas" 
-                               {% if not condicao_selecionada %}checked{% endif %}>
-                        <label class="form-check-label" for="todas">Todas</label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="condicao" id="novo" value="novo"
-                               {% if condicao_selecionada == 'novo' %}checked{% endif %}>
-                        <label class="form-check-label" for="novo">Novo</label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="condicao" id="usado" value="usado"
-                               {% if condicao_selecionada == 'usado' %}checked{% endif %}>
-                        <label class="form-check-label" for="usado">Usado</label>
-                    </div>
+                    <form method="get" action="{% url 'home' %}" id="condicao-form">
+                        {% if consulta %}<input type="hidden" name="q" value="{{ consulta }}">{% endif %}
+                        {% if categoria_selecionada %}<input type="hidden" name="categoria" value="{{ categoria_selecionada }}">{% endif %}
+                        {% if preco_minimo %}<input type="hidden" name="preco_minimo" value="{{ preco_minimo }}">{% endif %}
+                        {% if preco_maximo %}<input type="hidden" name="preco_maximo" value="{{ preco_maximo }}">{% endif %}
+                        
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="condicao" id="todas" value=""
+                                   {% if not condicao_selecionada %}checked{% endif %}>
+                            <label class="form-check-label" for="todas">Todas</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="condicao" id="novo" value="novo"
+                                   {% if condicao_selecionada == 'novo' %}checked{% endif %}>
+                            <label class="form-check-label" for="novo">Novo</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="condicao" id="usado" value="usado"
+                                   {% if condicao_selecionada == 'usado' %}checked{% endif %}>
+                            <label class="form-check-label" for="usado">Usado</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="condicao" id="reformado" value="reformado"
+                                   {% if condicao_selecionada == 'reformado' %}checked{% endif %}>
+                            <label class="form-check-label" for="reformado">Reformado</label>
+                        </div>
+                    </form>
                 </div>
                 
                 <!-- Preço -->
                 <div class="mb-4">
                     <h6 class="fw-medium mb-2">Preço</h6>
-                    <form method="get" action="{% url 'home' %}">
+                    <form method="get" action="{% url 'home' %}" id="preco-form">
                         {% if consulta %}<input type="hidden" name="q" value="{{ consulta }}">{% endif %}
                         {% if categoria_selecionada %}<input type="hidden" name="categoria" value="{{ categoria_selecionada }}">{% endif %}
                         {% if condicao_selecionada %}<input type="hidden" name="condicao" value="{{ condicao_selecionada }}">{% endif %}
@@ -57,25 +69,63 @@
                         <div class="row g-2">
                             <div class="col-6">
                                 <input type="number" name="preco_minimo" class="form-control form-control-sm" 
-                                       placeholder="Min" value="{{ preco_minimo }}">
+                                       placeholder="Min" value="{{ preco_minimo }}" min="0" step="0.01">
                             </div>
                             <div class="col-6">
                                 <input type="number" name="preco_maximo" class="form-control form-control-sm" 
-                                       placeholder="Max" value="{{ preco_maximo }}">
+                                       placeholder="Max" value="{{ preco_maximo }}" min="0" step="0.01">
                             </div>
                         </div>
                         <button type="submit" class="btn btn-sm olx-btn-primary w-100 mt-2">Aplicar</button>
                     </form>
                 </div>
+                
+                <!-- Limpar filtros -->
+                {% if consulta or categoria_selecionada or condicao_selecionada or preco_minimo or preco_maximo %}
+                <div class="mb-3">
+                    <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm w-100">
+                        <i class="fas fa-times me-1"></i> Limpar Filtros
+                    </a>
+                </div>
+                {% endif %}
             </div>
         </div>
         
         <!-- Listagem de anúncios -->
         <div class="col-md-9">
-            {% if consulta %}
+            {% if consulta or categoria_selecionada or condicao_selecionada or preco_minimo or preco_maximo %}
             <div class="mb-3">
-                <h5>Resultados para "{{ consulta }}"</h5>
-                <p class="text-muted">{{ anuncios.count }} anúncio(s) encontrado(s)</p>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        {% if consulta %}
+                        <h5>Resultados para "{{ consulta }}"</h5>
+                        {% else %}
+                        <h5>Anúncios filtrados</h5>
+                        {% endif %}
+                        <p class="text-muted">{{ anuncios.count }} anúncio(s) encontrado(s)</p>
+                    </div>
+                    <div class="text-end">
+                        <small class="text-muted">
+                            {% if categoria_selecionada %}
+                                <span class="badge bg-primary me-1">{{ categoria_selecionada|title }}</span>
+                            {% endif %}
+                            {% if condicao_selecionada %}
+                                <span class="badge bg-secondary me-1">{{ condicao_selecionada|title }}</span>
+                            {% endif %}
+                            {% if preco_minimo or preco_maximo %}
+                                <span class="badge bg-info">
+                                    {% if preco_minimo and preco_maximo %}
+                                        R$ {{ preco_minimo }} - R$ {{ preco_maximo }}
+                                    {% elif preco_minimo %}
+                                        A partir de R$ {{ preco_minimo }}
+                                    {% elif preco_maximo %}
+                                        Até R$ {{ preco_maximo }}
+                                    {% endif %}
+                                </span>
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
             </div>
             {% endif %}
             
@@ -156,5 +206,34 @@
         </div>
     </div>
 </div>
+
+<script>
+// Aplicar filtro de condição automaticamente quando selecionado
+document.addEventListener('DOMContentLoaded', function() {
+    const condicaoRadios = document.querySelectorAll('input[name="condicao"]');
+    
+    condicaoRadios.forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            document.getElementById('condicao-form').submit();
+        });
+    });
+    
+    // Validação do formulário de preço
+    const precoForm = document.getElementById('preco-form');
+    const precoMinimo = precoForm.querySelector('input[name="preco_minimo"]');
+    const precoMaximo = precoForm.querySelector('input[name="preco_maximo"]');
+    
+    precoForm.addEventListener('submit', function(e) {
+        const min = parseFloat(precoMinimo.value) || 0;
+        const max = parseFloat(precoMaximo.value) || 0;
+        
+        if (min > 0 && max > 0 && min > max) {
+            e.preventDefault();
+            alert('O preço mínimo não pode ser maior que o preço máximo.');
+            return false;
+        }
+    });
+});
+</script>
 
 {% endblock %} 

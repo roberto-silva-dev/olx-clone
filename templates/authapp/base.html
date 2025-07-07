@@ -19,6 +19,9 @@
             font-family: 'Inter', sans-serif;
             background-color: var(--olx-light-gray);
             color: var(--olx-gray);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
         
         .olx-logo {
@@ -34,9 +37,14 @@
         
         .olx-card {
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             border: 1px solid var(--olx-border);
+            transition: box-shadow 0.2s ease;
+        }
+        
+        .olx-card:hover {
+            box-shadow: 0 6px 20px rgba(0,0,0,0.12);
         }
         
         .olx-btn-primary {
@@ -45,7 +53,7 @@
             color: white;
             font-weight: 600;
             padding: 12px 24px;
-            border-radius: 6px;
+            border-radius: 8px;
             transition: all 0.2s;
         }
         
@@ -53,11 +61,12 @@
             background-color: var(--olx-orange-hover);
             border-color: var(--olx-orange-hover);
             color: white;
+            transform: translateY(-1px);
         }
         
         .olx-form-control {
             border: 1px solid var(--olx-border);
-            border-radius: 6px;
+            border-radius: 8px;
             padding: 12px 16px;
             font-size: 14px;
         }
@@ -86,18 +95,21 @@
             background: white;
             border-top: 1px solid var(--olx-border);
             padding: 2rem 0;
-            margin-top: 3rem;
+            margin-top: auto;
         }
         
         .olx-main-header {
             background: white;
             border-bottom: 1px solid var(--olx-border);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
         
         .olx-search-input {
             border: 2px solid var(--olx-orange);
-            border-radius: 6px 0 0 6px;
+            border-radius: 8px 0 0 8px;
             padding: 12px 16px;
             font-size: 14px;
         }
@@ -108,7 +120,7 @@
         }
         
         .search-form .btn {
-            border-radius: 0 6px 6px 0;
+            border-radius: 0 8px 8px 0;
             border-left: none;
         }
         
@@ -125,6 +137,21 @@
             border-radius: 50%;
             padding: 8px;
         }
+
+        /* Layout principal */
+        main {
+            flex: 1;
+            padding: 2rem 0;
+            min-height: calc(100vh - 200px);
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            main {
+                padding: 1rem 0;
+                min-height: calc(100vh - 150px);
+            }
+        }
     </style>
 </head>
 <body>
@@ -136,7 +163,7 @@
                     <a href="{% url 'home' %}" class="olx-logo">OLX</a>
                 </div>
                 <div class="col-md-6">
-                    <form method="get" action="{% url 'home' %}" class="search-form">
+                    <form method="get" action="{% url 'home' %}" class="search-form" id="search-form">
                         <div class="input-group">
                             <input type="text" name="q" class="form-control olx-search-input" 
                                    placeholder="O que você está procurando?" 
@@ -145,6 +172,19 @@
                                 <i class="fas fa-search"></i> Buscar
                             </button>
                         </div>
+                        <!-- Campos hidden para preservar filtros -->
+                        {% if categoria_selecionada %}
+                        <input type="hidden" name="categoria" value="{{ categoria_selecionada }}">
+                        {% endif %}
+                        {% if condicao_selecionada %}
+                        <input type="hidden" name="condicao" value="{{ condicao_selecionada }}">
+                        {% endif %}
+                        {% if preco_minimo %}
+                        <input type="hidden" name="preco_minimo" value="{{ preco_minimo }}">
+                        {% endif %}
+                        {% if preco_maximo %}
+                        <input type="hidden" name="preco_maximo" value="{{ preco_maximo }}">
+                        {% endif %}
                     </form>
                 </div>
                 <div class="col-md-3 text-end">
@@ -156,6 +196,8 @@
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{% url 'criar_anuncio' %}"><i class="fas fa-plus"></i> Criar Anúncio</a></li>
                                 <li><a class="dropdown-item" href="{% url 'meus_anuncios' %}"><i class="fas fa-list"></i> Meus Anúncios</a></li>
+                                <li><a class="dropdown-item" href="{% url 'chat_list' %}"><i class="fas fa-comments"></i> Minhas Conversas</a></li>
+                                <li><a class="dropdown-item" href="{% url 'seller_chats' %}"><i class="fas fa-store"></i> Conversas dos Meus Anúncios</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Sair</a></li>
                             </ul>
@@ -169,15 +211,6 @@
             </div>
         </div>
     </header>
-
-    <!-- Messages -->
-    {% if messages %}
-    <div class="container mt-3">
-        {% for message in messages %}
-            <div class="alert alert-info">{{ message }}</div>
-        {% endfor %}
-    </div>
-    {% endif %}
 
     <!-- Main Content -->
     <main>

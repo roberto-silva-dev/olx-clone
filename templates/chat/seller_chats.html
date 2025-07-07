@@ -1,0 +1,242 @@
+{% extends 'authapp/base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar com estatísticas -->
+        <div class="col-lg-3 d-none d-lg-block">
+            <div class="olx-card sticky-top" style="top: 100px;">
+                <div class="card-body p-4">
+                    <h6 class="fw-bold mb-4">
+                        <i class="fas fa-chart-bar me-2"></i>Estatísticas
+                    </h6>
+                    
+                    <!-- Cards de estatísticas -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-6">
+                            <div class="bg-primary bg-opacity-10 rounded p-3 text-center">
+                                <div class="fw-bold text-primary">{% if chats.count %}{{ chats.count }}{% else %}0{% endif %}</div>
+                                <small class="text-muted">Conversas</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="bg-success bg-opacity-10 rounded p-3 text-center">
+                                <div class="fw-bold text-success">{% if active_chats_count %}{{ active_chats_count }}{% else %}0{% endif %}</div>
+                                <small class="text-muted">Ativas</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Filtros rápidos -->
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold mb-3">Filtrar por</label>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="new" 
+                                   {% if filter_new == 'true' %}checked{% endif %}
+                                   onchange="toggleFilter('new', this.checked)">
+                            <label class="form-check-label small" for="new">
+                                Novas mensagens
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="today" checked>
+                            <label class="form-check-label small" for="today">
+                                Hoje
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="week" checked>
+                            <label class="form-check-label small" for="week">
+                                Esta semana
+                            </label>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Ações rápidas -->
+                    <div>
+                        <label class="form-label small fw-bold mb-3">Ações</label>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-reply-all me-1"></i>Responder Todas
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-archive me-1"></i>Arquivar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista principal de chats do vendedor -->
+        <div class="col-lg-9">
+            <div class="olx-card">
+                <div class="card-body p-0">
+                    <!-- Header da lista -->
+                    <div class="p-4 border-bottom bg-light">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h4 class="fw-bold mb-1">
+                                    <i class="fas fa-store me-2 text-success"></i>Conversas dos Meus Anúncios
+                                </h4>
+                                <p class="text-muted mb-0 small">
+                                    Gerencie as conversas sobre seus anúncios e responda aos interessados
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lista de chats -->
+                    {% if chats %}
+                        <div class="seller-chat-list">
+                            {% for chat in chats %}
+                            <div class="seller-chat-item p-4 border-bottom hover-bg-light" style="transition: background-color 0.2s ease;">
+                                <a href="{% url 'chat_detail' chat.id %}" class="text-decoration-none text-dark">
+                                    <div class="d-flex align-items-start">
+                                        <!-- Avatar do comprador -->
+                                        <div class="flex-shrink-0 me-3">
+                                            <div class="bg-success rounded-circle d-flex align-items-center justify-content-center" 
+                                                 style="width: 50px; height: 50px;">
+                                                <span class="text-white fw-bold">{{ chat.buyer.username|first|upper }}</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Conteúdo do chat -->
+                                        <div class="flex-grow-1 min-w-0">
+                                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                                <h6 class="fw-bold mb-0 text-truncate">{{ chat.buyer.username }}</h6>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    {% if chat.has_new_messages %}
+                                                        <span class="badge bg-danger">{{ chat.unread_count }}</span>
+                                                    {% endif %}
+                                                    <small class="text-muted flex-shrink-0">
+                                                        {% if chat.last_message %}
+                                                            {{ chat.last_message.timestamp|date:"d/m" }}
+                                                        {% else %}
+                                                            {{ chat.created_at|date:"d/m" }}
+                                                        {% endif %}
+                                                    </small>
+                                                </div>
+                                            </div>
+                                            
+                                            <p class="text-muted small mb-1 text-truncate">
+                                                <i class="fas fa-tag me-1"></i>{{ chat.anuncio.titulo|truncatewords:4 }}
+                                            </p>
+                                            
+                                            {% if chat.last_message %}
+                                                <div class="d-flex align-items-center">
+                                                    <span class="text-muted small text-truncate">
+                                                        {% if chat.last_message.sender == user %}
+                                                            <i class="fas fa-reply me-1 text-success"></i>Você:
+                                                        {% else %}
+                                                            <i class="fas fa-user me-1 text-primary"></i>{{ chat.last_message.sender.username }}:
+                                                        {% endif %}
+                                                        {{ chat.last_message.content|truncatechars:60 }}
+                                                    </span>
+                                                </div>
+                                            {% else %}
+                                                <span class="text-muted small">
+                                                    <i class="fas fa-comment-dots me-1"></i>Nenhuma mensagem ainda
+                                                </span>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Indicadores e ações -->
+                                        <div class="flex-shrink-0 ms-3 text-end">
+                                            {% if chat.last_message %}
+                                                <small class="text-muted d-block mb-1">
+                                                    {{ chat.last_message.timestamp|date:"H:i" }}
+                                                </small>
+                                            {% endif %}
+                                            
+                                            <!-- Botões de ação rápida -->
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary btn-sm" title="Responder">
+                                                    <i class="fas fa-reply"></i>
+                                                </button>
+                                                <button class="btn btn-outline-secondary btn-sm" title="Arquivar">
+                                                    <i class="fas fa-archive"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <!-- Estado vazio -->
+                        <div class="text-center py-5">
+                            <div class="mb-4">
+                                <i class="fas fa-store text-muted" style="font-size: 4rem; opacity: 0.5;"></i>
+                            </div>
+                            <h5 class="text-muted mb-3">Nenhuma conversa ainda</h5>
+                            <p class="text-muted mb-4">
+                                Você ainda não recebeu mensagens sobre seus anúncios
+                            </p>
+                            <div class="d-flex gap-2 justify-content-center">
+                                <a href="{% url 'meus_anuncios' %}" class="btn btn-primary">
+                                    <i class="fas fa-list me-2"></i>Ver Meus Anúncios
+                                </a>
+                                <a href="{% url 'criar_anuncio' %}" class="btn btn-outline-primary">
+                                    <i class="fas fa-plus me-2"></i>Criar Anúncio
+                                </a>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.hover-bg-light:hover {
+    background-color: #f8f9fa !important;
+}
+
+.seller-chat-item {
+    cursor: pointer;
+}
+
+.seller-chat-item:hover {
+    background-color: #f8f9fa;
+}
+
+.min-w-0 {
+    min-width: 0;
+}
+
+.btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+@media (max-width: 991.98px) {
+    .container-fluid {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}
+</style>
+
+<script>
+function toggleFilter(filterType, isChecked) {
+    const currentUrl = new URL(window.location);
+    
+    if (filterType === 'new') {
+        if (isChecked) {
+            currentUrl.searchParams.set('new', 'true');
+        } else {
+            currentUrl.searchParams.delete('new');
+        }
+    }
+    
+    window.location.href = currentUrl.toString();
+}
+</script>
+{% endblock %} 

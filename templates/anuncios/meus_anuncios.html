@@ -78,7 +78,9 @@
                                         <a href="{% url 'editar_anuncio' anuncio.pk %}" class="btn btn-sm btn-outline-warning">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <button class="btn btn-sm btn-outline-danger">
+                                        <button class="btn btn-sm btn-outline-danger" 
+                                                onclick="confirmarDeletar({{ anuncio.pk }}, '{{ anuncio.titulo|escapejs }}')"
+                                                title="Deletar anúncio">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </div>
@@ -112,4 +114,96 @@
     background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
 }
 </style>
+
+<script>
+function confirmarDeletar(anuncioId, titulo) {
+    if (confirm(`Tem certeza que deseja deletar o anúncio "${titulo}"?\n\nEsta ação não pode ser desfeita.`)) {
+        deletarAnuncio(anuncioId);
+    }
+}
+
+function deletarAnuncio(anuncioId) {
+    // Mostrar loading no botão
+    const button = event.target.closest('button');
+    const originalContent = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    button.disabled = true;
+    
+    fetch(`/anuncios/deletar/${anuncioId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Remover o card do anúncio da tela
+            const anuncioCard = button.closest('.col-md-6');
+            anuncioCard.style.transition = 'all 0.3s ease';
+            anuncioCard.style.opacity = '0';
+            anuncioCard.style.transform = 'scale(0.8)';
+            
+            setTimeout(() => {
+                anuncioCard.remove();
+                
+                // Verificar se não há mais anúncios
+                const anunciosContainer = document.querySelector('.row');
+                if (anunciosContainer.children.length === 0) {
+                    location.reload(); // Recarregar para mostrar estado vazio
+                }
+            }, 300);
+            
+            // Mostrar mensagem de sucesso
+            mostrarMensagem('Anúncio deletado com sucesso!', 'success');
+        } else {
+            mostrarMensagem('Erro ao deletar anúncio. Tente novamente.', 'error');
+            button.innerHTML = originalContent;
+            button.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        mostrarMensagem('Erro ao deletar anúncio. Tente novamente.', 'error');
+        button.innerHTML = originalContent;
+        button.disabled = false;
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function mostrarMensagem(mensagem, tipo) {
+    // Criar elemento de mensagem
+    const mensagemDiv = document.createElement('div');
+    mensagemDiv.className = `alert alert-${tipo === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed`;
+    mensagemDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    mensagemDiv.innerHTML = `
+        ${mensagem}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(mensagemDiv);
+    
+    // Remover automaticamente após 5 segundos
+    setTimeout(() => {
+        if (mensagemDiv.parentNode) {
+            mensagemDiv.remove();
+        }
+    }, 5000);
+}
+</script>
 {% endblock %} 

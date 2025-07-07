@@ -1,0 +1,203 @@
+{% extends 'authapp/base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar para filtros (opcional) -->
+        <div class="col-lg-3 d-none d-lg-block">
+            <div class="olx-card sticky-top" style="top: 100px;">
+                <div class="card-body p-4">
+                    <h6 class="fw-bold mb-4">
+                        <i class="fas fa-filter me-2"></i>Filtros
+                    </h6>
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold mb-3">Status</label>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="unread" 
+                                   {% if filter_unread == 'true' %}checked{% endif %}
+                                   onchange="toggleFilter('unread', this.checked)">
+                            <label class="form-check-label small" for="unread">
+                                Não lidas <span class="badge bg-danger ms-1">{{ unread_chats_count }}</span>
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="recent" 
+                                   {% if filter_recent == 'true' %}checked{% endif %}
+                                   onchange="toggleFilter('recent', this.checked)">
+                            <label class="form-check-label small" for="recent">
+                                Recentes
+                            </label>
+                        </div>
+                    </div>
+                    <hr class="my-4">
+                    <div class="text-center">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            {{ chats.count }} conversa{{ chats.count|pluralize:"s" }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista principal de chats -->
+        <div class="col-lg-9">
+            <div class="olx-card">
+                <div class="card-body p-0">
+                    <!-- Header da lista -->
+                    <div class="p-4 border-bottom">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h4 class="fw-bold mb-1">
+                                    <i class="fas fa-comments me-2 text-primary"></i>Minhas Conversas
+                                </h4>
+                                <p class="text-muted mb-0 small">
+                                    Gerencie suas conversas e mantenha contato com compradores e vendedores
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lista de chats -->
+                    {% if chats %}
+                        <div class="chat-list">
+                            {% for chat in chats %}
+                            <div class="chat-item p-4 border-bottom hover-bg-light {% if chat.has_unread_messages %}unread-chat{% endif %}" style="transition: background-color 0.2s ease;">
+                                <a href="{% url 'chat_detail' chat.id %}" class="text-decoration-none text-dark">
+                                    <div class="d-flex align-items-start">
+                                        <!-- Avatar do usuário -->
+                                        <div class="flex-shrink-0 me-3">
+                                            <div class="{% if chat.has_unread_messages %}bg-danger{% else %}bg-primary{% endif %} rounded-circle d-flex align-items-center justify-content-center" 
+                                                 style="width: 50px; height: 50px;">
+                                                <span class="text-white fw-bold">{{ chat.other_user.username|first|upper }}</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Conteúdo do chat -->
+                                        <div class="flex-grow-1 min-w-0">
+                                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                                <h6 class="fw-bold mb-0 text-truncate {% if chat.has_unread_messages %}text-dark{% endif %}">{{ chat.other_user.username }}</h6>
+                                                <small class="text-muted flex-shrink-0 ms-2">
+                                                    {% if chat.last_message %}
+                                                        {{ chat.last_message.timestamp|date:"d/m" }}
+                                                    {% else %}
+                                                        {{ chat.created_at|date:"d/m" }}
+                                                    {% endif %}
+                                                </small>
+                                            </div>
+                                            
+                                            <p class="text-muted small mb-1 text-truncate">
+                                                <i class="fas fa-tag me-1"></i>{{ chat.anuncio.titulo|truncatewords:4 }}
+                                            </p>
+                                            
+                                            {% if chat.last_message %}
+                                                <div class="d-flex align-items-center">
+                                                    <span class="{% if chat.has_unread_messages %}text-dark fw-medium{% else %}text-muted{% endif %} small text-truncate">
+                                                        {% if chat.last_message.sender == user %}
+                                                            <i class="fas fa-reply me-1 text-primary"></i>Você:
+                                                        {% else %}
+                                                            <i class="fas fa-user me-1"></i>{{ chat.last_message.sender.username }}:
+                                                        {% endif %}
+                                                        {{ chat.last_message.content|truncatechars:60 }}
+                                                    </span>
+                                                </div>
+                                            {% else %}
+                                                <span class="text-muted small">
+                                                    <i class="fas fa-comment-dots me-1"></i>Nenhuma mensagem ainda
+                                                </span>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Indicadores -->
+                                        <div class="flex-shrink-0 ms-3 text-end">
+                                            {% if chat.last_message %}
+                                                <small class="text-muted d-block">
+                                                    {{ chat.last_message.timestamp|date:"H:i" }}
+                                                </small>
+                                            {% endif %}
+                                            {% if chat.has_unread_messages %}
+                                                <span class="badge bg-danger mt-1">{{ chat.unread_count }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <!-- Estado vazio -->
+                        <div class="text-center py-5">
+                            <div class="mb-4">
+                                <i class="fas fa-comments text-muted" style="font-size: 4rem; opacity: 0.5;"></i>
+                            </div>
+                            <h5 class="text-muted mb-3">Nenhuma conversa ainda</h5>
+                            <p class="text-muted mb-4">
+                                Encontre anúncios interessantes e inicie conversas com vendedores
+                            </p>
+                            <a href="{% url 'home' %}" class="btn btn-primary">
+                                <i class="fas fa-search me-2"></i>Explorar Anúncios
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.hover-bg-light:hover {
+    background-color: #f8f9fa !important;
+}
+
+.chat-item {
+    cursor: pointer;
+}
+
+.chat-item:hover {
+    background-color: #f8f9fa;
+}
+
+.unread-chat {
+    background-color: #fff3cd;
+    border-left: 4px solid #dc3545;
+}
+
+.unread-chat:hover {
+    background-color: #ffeaa7 !important;
+}
+
+.min-w-0 {
+    min-width: 0;
+}
+
+@media (max-width: 991.98px) {
+    .container-fluid {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}
+</style>
+
+<script>
+function toggleFilter(filterType, isChecked) {
+    const currentUrl = new URL(window.location);
+    
+    if (filterType === 'unread') {
+        if (isChecked) {
+            currentUrl.searchParams.set('unread', 'true');
+        } else {
+            currentUrl.searchParams.delete('unread');
+        }
+    } else if (filterType === 'recent') {
+        if (isChecked) {
+            currentUrl.searchParams.set('recent', 'true');
+        } else {
+            currentUrl.searchParams.delete('recent');
+        }
+    }
+    
+    window.location.href = currentUrl.toString();
+}
+</script>
+{% endblock %} 

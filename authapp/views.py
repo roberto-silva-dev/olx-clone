@@ -5,6 +5,7 @@ from django.db.models import Q
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from anuncios.models import Anuncio, Categoria
+from decimal import Decimal, InvalidOperation
 
 # Create your views here.
 
@@ -27,15 +28,16 @@ def logout_view(request):
 
 def home(request):
     # Obter parâmetros de pesquisa
-    consulta = request.GET.get('q', '')
-    categoria = request.GET.get('categoria', '')
-    condicao = request.GET.get('condicao', '')
-    preco_minimo = request.GET.get('preco_minimo', '')
-    preco_maximo = request.GET.get('preco_maximo', '')
+    consulta = request.GET.get('q', '').strip()
+    categoria = request.GET.get('categoria', '').strip()
+    condicao = request.GET.get('condicao', '').strip()
+    preco_minimo = request.GET.get('preco_minimo', '').strip()
+    preco_maximo = request.GET.get('preco_maximo', '').strip()
     
     # Filtrar anúncios
     anuncios = Anuncio.objects.filter(ativo=True)
     
+    # Aplicar filtro de busca
     if consulta:
         anuncios = anuncios.filter(
             Q(titulo__icontains=consulta) | 
@@ -43,17 +45,32 @@ def home(request):
             Q(localizacao__icontains=consulta)
         )
     
+    # Aplicar filtro de categoria
     if categoria:
         anuncios = anuncios.filter(categoria__slug=categoria)
     
+    # Aplicar filtro de condição
     if condicao:
         anuncios = anuncios.filter(condicao=condicao)
     
+    # Aplicar filtros de preço com validação
     if preco_minimo:
-        anuncios = anuncios.filter(preco__gte=preco_minimo)
+        try:
+            preco_min = Decimal(preco_minimo)
+            if preco_min > 0:
+                anuncios = anuncios.filter(preco__gte=preco_min)
+        except (InvalidOperation, ValueError):
+            # Se o valor não for válido, ignorar o filtro
+            preco_minimo = ''
     
     if preco_maximo:
-        anuncios = anuncios.filter(preco__lte=preco_maximo)
+        try:
+            preco_max = Decimal(preco_maximo)
+            if preco_max > 0:
+                anuncios = anuncios.filter(preco__lte=preco_max)
+        except (InvalidOperation, ValueError):
+            # Se o valor não for válido, ignorar o filtro
+            preco_maximo = ''
     
     # Ordenar por mais recentes
     anuncios = anuncios.order_by('-data_criacao')
